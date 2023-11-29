@@ -1,0 +1,6 @@
+// {{classname}} - {{{description}}}{{^description}}struct for {{{classname}}}{{/description}}
+type {{classname}} struct {
+	{{#oneOf}}
+	{{#lambda.type-to-name}}{{{.}}}{{/lambda.type-to-name}} Optional[{{{.}}}]
+	{{/oneOf}}
+}

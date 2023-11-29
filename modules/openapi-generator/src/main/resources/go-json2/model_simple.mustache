@@ -1,0 +1,67 @@
+// checks if the {{classname}} type satisfies the MappedNullable interface at compile time
+var _ MappedNullable = &{{classname}}{}
+
+// {{classname}} {{{description}}}{{^description}}struct for {{{classname}}}{{/description}}
+type {{classname}} struct {
+{{#parent}}
+    {{^isMap}}
+        {{^isArray}}
+            {{{parent}}}
+        {{/isArray}}
+    {{/isMap}}
+    {{#isArray}}
+        Items {{{parent}}}
+    {{/isArray}}
+{{/parent}}
+{{#vars}}
+    {{^-first}}
+    {{/-first}}
+    {{#description}}
+        // {{{.}}}
+    {{/description}}
+    {{#deprecated}}
+        // Deprecated
+    {{/deprecated}}
+    {{name}} {{^required}}Optional[{{/required}}{{#isNullable}}Nullable[{{/isNullable}}{{{dataType}}}{{#isNullable}}]{{/isNullable}}{{^required}}]{{/required}} `json:"{{{baseName}}}{{^required}},omitzero{{/required}}"{{#withXml}} xml:"{{{baseName}}}{{#isXmlAttribute}},attr{{/isXmlAttribute}}"{{/withXml}}{{#vendorExtensions.x-go-custom-tag}} {{{.}}}{{/vendorExtensions.x-go-custom-tag}}`
+{{/vars}}
+{{#isAdditionalPropertiesTrue}}
+    AdditionalProperties map[string]interface{}
+{{/isAdditionalPropertiesTrue}}
+}
+
+func (o {{classname}}) ToMap() (map[string]interface{}, error) {
+toSerialize := {{#isArray}}make([]interface{}, len(o.Items)){{/isArray}}{{^isArray}}map[string]interface{}{}{{/isArray}}
+{{#vars}}
+{{! if argument is nullable, only serialize it if it is set}}
+    {{#required}}
+        {{#isNullable}}
+            if o.{{name}}.Valid {
+                toSerialize["{{{baseName}}}"] = o.{{name}}.Val
+            }
+        {{/isNullable}}
+        {{^isNullable}}
+            toSerialize["{{{baseName}}}"] = o.{{name}}
+        {{/isNullable}}
+    {{/required}}
+    {{^required}}
+        {{#isNullable}}
+            if o.{{name}}.Defined && o.{{name}}.Val.Valid {
+                toSerialize["{{{baseName}}}"] = o.{{name}}.Val.Val
+            }
+        {{/isNullable}}
+        {{^isNullable}}
+            if o.{{name}}.Defined {
+                toSerialize["{{{baseName}}}"] = o.{{name}}.Val
+            }
+        {{/isNullable}}
+    {{/required}}
+{{/vars}}
+{{#isAdditionalPropertiesTrue}}
+
+    for key, value := range o.AdditionalProperties {
+    toSerialize[key] = value
+    }
+
+{{/isAdditionalPropertiesTrue}}
+return toSerialize, nil
+}
