@@ -13,6 +13,9 @@ type {{classname}} struct {
         Items {{{parent}}}
     {{/isArray}}
 {{/parent}}
+{{#allParents}}
+    {{{.}}}
+{{/allParents}}
 {{#vars}}
     {{^-first}}
     {{/-first}}
@@ -22,7 +25,7 @@ type {{classname}} struct {
     {{#deprecated}}
         // Deprecated
     {{/deprecated}}
-    {{name}} {{^required}}Optional[{{/required}}{{#isNullable}}Nullable[{{/isNullable}}{{{dataType}}}{{#isNullable}}]{{/isNullable}}{{^required}}]{{/required}} `json:"{{{baseName}}}{{^required}},omitzero{{/required}}"{{#withXml}} xml:"{{{baseName}}}{{#isXmlAttribute}},attr{{/isXmlAttribute}}"{{/withXml}}{{#vendorExtensions.x-go-custom-tag}} {{{.}}}{{/vendorExtensions.x-go-custom-tag}}`
+    {{name}} {{^required}}Optional{{#isNullable}}Nullable{{/isNullable}}[{{/required}}{{#required}}{{#isNullable}}Nullable[{{/isNullable}}{{/required}}{{dataType}}{{^required}}]{{/required}}{{#required}}{{#isNullable}}]{{/isNullable}}{{/required}} `json:"{{{baseName}}}{{^required}},omitzero{{/required}}"{{#withXml}} xml:"{{{baseName}}}{{#isXmlAttribute}},attr{{/isXmlAttribute}}"{{/withXml}}{{#vendorExtensions.x-go-custom-tag}} {{{.}}}{{/vendorExtensions.x-go-custom-tag}}`
 {{/vars}}
 {{#isAdditionalPropertiesTrue}}
     AdditionalProperties map[string]interface{}
@@ -35,7 +38,7 @@ toSerialize := {{#isArray}}make([]interface{}, len(o.Items)){{/isArray}}{{^isArr
 {{! if argument is nullable, only serialize it if it is set}}
     {{#required}}
         {{#isNullable}}
-            if o.{{name}}.Valid {
+            if !o.{{name}}.IsNull() {
                 toSerialize["{{{baseName}}}"] = o.{{name}}.Val
             }
         {{/isNullable}}
@@ -45,12 +48,12 @@ toSerialize := {{#isArray}}make([]interface{}, len(o.Items)){{/isArray}}{{^isArr
     {{/required}}
     {{^required}}
         {{#isNullable}}
-            if o.{{name}}.Defined && o.{{name}}.Val.Valid {
-                toSerialize["{{{baseName}}}"] = o.{{name}}.Val.Val
+            if !o.{{name}}.IsZero() && !o.{{name}}.IsNull() {
+                toSerialize["{{{baseName}}}"] = o.{{name}}.Val
             }
         {{/isNullable}}
         {{^isNullable}}
-            if o.{{name}}.Defined {
+            if !o.{{name}}.IsZero() {
                 toSerialize["{{{baseName}}}"] = o.{{name}}.Val
             }
         {{/isNullable}}

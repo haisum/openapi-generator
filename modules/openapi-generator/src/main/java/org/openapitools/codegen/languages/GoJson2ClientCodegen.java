@@ -408,7 +408,7 @@ public class GoJson2ClientCodegen extends AbstractGoCodegen {
     /**
      * Determines if at least one of the allOf pieces of a schema are of type string
      *
-     * @param p
+     * @param schema
      * @return
      */
     private boolean isAllOfStringSchema(Schema schema) {
@@ -465,6 +465,34 @@ public class GoJson2ClientCodegen extends AbstractGoCodegen {
             if (model.isEnum) {
                 imports.add(createMapping("import", "fmt"));
                 imports.add(createMapping("import", "encoding/json"));
+            }
+            Schema schema = openAPI.getComponents().getSchemas().get(model.name);
+            // if schema is allOf with properties then delete all properties coming from allOf and put allOf in allParents
+            if (ModelUtils.isAllOfWithProperties(schema)) { // allOf with properties
+                // We will use allParents as composed structs instead of inlining all properties
+                model.allParents = new ArrayList<>();
+                schema.getAllOf().forEach(o -> {
+                    Schema s = (Schema) o;
+                    model.allParents.add(ModelUtils.getSimpleRef(s.get$ref()));
+                });
+                List originalProperties = new ArrayList<String>();
+                schema.getProperties().forEach((k, o) -> {
+                    originalProperties.add(k);
+                });
+                List<CodegenProperty> originalVars = new ArrayList<>();
+                for (int i = 0; i < model.vars.size(); i++) {
+                    if (originalProperties.contains(model.vars.get(i).baseName)){
+                        originalVars.add(model.vars.get(i));
+                    }
+                }
+                model.vars = originalVars;
+            } else if (ModelUtils.isAllOf(schema)) { // allOf
+                // We will use allParents as composed structs instead of inlining all properties
+                model.allParents = new ArrayList<>();
+                schema.getAllOf().forEach(o -> {
+                    Schema s = (Schema) o;
+                    model.allParents.add(ModelUtils.getSimpleRef(s.get$ref()));
+                });
             }
 //
 //            for (CodegenProperty param : Iterables.concat(model.vars, model.allVars, model.requiredVars, model.optionalVars)) {
